@@ -2,8 +2,6 @@ version: '3.9'
 
 # set up logging for all services which need it
 x-base-logged-service: &base_logged_service
-  depends_on: 
-    - loki
   logging:
     driver: loki
     options:

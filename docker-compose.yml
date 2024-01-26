@@ -1,0 +1,48 @@
+version: '3.9'
+
+# set up logging for all services which need it
+x-base-logged-service: &base_logged_service
+  depends_on: 
+    - loki
+  logging:
+    driver: loki
+    options:
+      loki-url: "http://10.0.0.12:3100/loki/api/v1/push"
+      loki-retries: 1
+      loki-batch-size: 400
+      max-size: 10m
+      max-file: 2
+  restart: unless-stopped
+
+x-base-network-config: &base_network_config
+  networks: 
+   - web  
+
+services:
+  node-exporter:
+    <<: [*base_logged_service, *base_network_config]
+    image: prom/node-exporter
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+
+  cadvisor: 
+    <<: [*base_logged_service, *base_network_config]
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8080:8080
